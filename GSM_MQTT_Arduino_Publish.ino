@@ -13,6 +13,7 @@ String MQTT_PORT = "1883";
    MQTT port
 */
 
+
 //SoftwareSerial Serial1(10, 11); // RX, TX
 
 /*
