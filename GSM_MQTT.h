@@ -106,7 +106,9 @@ class GSM_MQTT
 
   private:
     volatile unsigned int _LastMessaseID = 0;
-    volatile char _ProtocolVersion = 3;
+    //volatile char _ProtocolVersion = 3;
+    volatile char _ProtocolVersion = 3.1;
+
     volatile unsigned long _PingPrevMillis = 0;
     volatile char _tcpStatus = 0;
     volatile char _tcpStatusPrev = 0;

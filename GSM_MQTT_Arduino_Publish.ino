@@ -4,7 +4,7 @@
 
 #include "GSM_MQTT.h"
 #include <SoftwareSerial.h>
-String MQTT_HOST = "test.mosquitto.org";
+String MQTT_HOST = "broker.hivemq.com";
 /*
    MQTT host address
 */
@@ -12,10 +12,14 @@ String MQTT_PORT = "1883";
 /*
    MQTT port
 */
-SoftwareSerial mySerial(10, 11); // RX, TX
+
+//SoftwareSerial Serial1(10, 11); // RX, TX
+
 /*
    Software Serial through which mqtt events log is printed at 9600 baud rate
 */
+
+
 void GSM_MQTT::AutoConnect(void)
 {
   /*
@@ -23,7 +27,7 @@ void GSM_MQTT::AutoConnect(void)
      This function is called whenever TCP connection is established (or re-established).
      put your connect codes here.
   */
-  connect("qwertyuiop", 0, 0, "", "", 1, 0, 0, 0, "", "");
+  connect("ClientID12345", 0, 0, "", "", 1, 0, 0, 0, "Promethean/Temperature/Temp", "This is A Message ID from Promethean");
   /*    void connect(char *ClientIdentifier, char UserNameFlag, char PasswordFlag, char *UserName, char *Password, char CleanSession, char WillFlag, char WillQoS, char WillRetain, char *WillTopic, char *WillMessage);
           ClientIdentifier  :Is a string that uniquely identifies the client to the server.
                             :It must be unique across all clients connecting to a single server.(So it will be better for you to change that).
@@ -63,6 +67,9 @@ void GSM_MQTT::AutoConnect(void)
   */
   
 }
+
+
+
 void GSM_MQTT::OnConnect(void)
 {
   /*
@@ -83,7 +90,7 @@ void GSM_MQTT::OnConnect(void)
                     :Default value 0
   */
 
-  publish(0, 0, 0, _generateMessageID(), "SampleTopic", "Hello");
+  publish(0, 0, 0, _generateMessageID(), "Promethean/Temperature/Temp", "This is A Message ID from Promethean");
   /*  void publish(char DUP, char Qos, char RETAIN, unsigned int MessageID, char *Topic, char *Message);
       DUP       :This flag is set when the client or server attempts to re-deliver a PUBLISH message
                 :This applies to messages where the value of QoS is greater than zero (0)
@@ -103,6 +110,8 @@ void GSM_MQTT::OnConnect(void)
       Message   :Publishing Message
   */
 }
+
+
 void GSM_MQTT::OnMessage(char *Topic, int TopicLength, char *Message, int MessageLength)
 {
   /*
@@ -116,10 +125,10 @@ void GSM_MQTT::OnMessage(char *Topic, int TopicLength, char *Message, int Messag
      Message      :The containing array
      MessageLength:Number of characters in message
   */
-  mySerial.println(TopicLength);
-  mySerial.println(Topic);
-  mySerial.println(MessageLength);
-  mySerial.println(Message);
+  Serial1.println(TopicLength);
+  Serial1.println(Topic);
+  Serial1.println(MessageLength);
+  Serial1.println(Message);
 
 }
 GSM_MQTT MQTT(20);
@@ -147,6 +156,9 @@ void loop()
   */
   if (MQTT.available())
   {
+
+  Serial.println("\nMQTT is available()\ni.e.\t CONNACK is already obtained\n");
+   
     /*
       if you want to do something when mqtt connection is live.
       You can write your code here
