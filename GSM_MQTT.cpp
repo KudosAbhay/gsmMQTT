@@ -141,12 +141,7 @@ void GSM_MQTT::_tcpInit(void)
         if (GSM_ReplyFlag != 7)
         {
           _tcpStatus = sendATreply("AT+CIPSTATUS\r\n", "STATE", 4000);
-          
-          
-          Serial.print("\n _tcpStatus:\t");
-          Serial.println((char)_tcpStatus);
 
-          
           if (_tcpStatusPrev == _tcpStatus)
           {
             tcpATerrorcount++;
@@ -799,7 +794,6 @@ void serialEvent()
         }
         else if (strstr(MQTT.inputString, "OK") != NULL)
         {
-          Serial.println("\n OK \n");
           GSM_Response = 1;
         }
         else if (strstr(MQTT.inputString, "ERROR") != NULL)
