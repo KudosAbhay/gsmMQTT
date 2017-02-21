@@ -1,5 +1,5 @@
 /*
- * This is the Original Code file
+ * This was created on 21st Feb 2017. In this code, we are temporarily able to connect to MQTT website, using Hard Coding
  */
 
 #include "GSM_MQTT.h"
