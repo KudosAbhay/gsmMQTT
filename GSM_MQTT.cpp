@@ -20,6 +20,12 @@ unsigned long previousMillis = 0;
 //char inputString[UART_BUFFER_LENGTH];         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 void serialEvent();
+
+void serialEvent1();
+uint8_t count = 1;
+
+
+
 GSM_MQTT::GSM_MQTT(unsigned long KeepAlive)
 {
   _KeepAliveTimeOut = KeepAlive;
@@ -93,7 +99,7 @@ void GSM_MQTT::_tcpInit(void)
     case 0:
       {
         delay(1000);
-        Serial.print("----Starting------");
+        Serial.print("\n----Starting------\n");
         delay(500);
         if (_sendAT("AT\r\n", 5000) == 1)
         {
@@ -107,9 +113,9 @@ void GSM_MQTT::_tcpInit(void)
       }
     case 1:
       {
-        if (_sendAT("ATE1\r\n", 2000) == 1)
+        if (_sendAT("AT+CIPSHUT\r\n", 2000) == 1)
         {
-          modemStatus = 2;
+          modemStatus = 2;          
         }
         else
         {
@@ -127,8 +133,44 @@ void GSM_MQTT::_tcpInit(void)
           {
             _sendAT("AT+CGATT=1\r\n", 2000);
           }
+//..............................................................................................
+          if(sendATreply("AT+CSTT=\"airtelgprs.com\"\r\n","OK", 5000) == 1)
+          {
+            if(sendATreply("AT+CIPSTATUS\r\n","STATE: IP START",4000) == 1)
+            {
+              Serial.println("\n OKAY \n");
+            }
+            else
+            {
+              Serial.println("\n NOT OKAY \n");
+            }
+            Serial.println((char)_tcpStatus);
+          }
+
+          
+          if(sendATreply("AT+CIICR\r\n","OK", 5000) == 1)
+          {
+            if(sendATreply("AT+CIPSTATUS\r\n","STATE: IP GPRSACT",4000) == 1)
+            {
+              Serial.println("\n OKAY \n");
+            }
+            else
+            {
+              Serial.println("\n NOT OKAY \n");
+            }
+            Serial.println((char)_tcpStatus);
+          }
+
+                    
+          if(sendATreply("AT+CIFSR\r\n",".", 5000) == 1)
+          {
+            _tcpStatus= sendATreply("AT+CIPSTATUS\r\n","STATE",4000);
+            Serial.println((char)_tcpStatus);          
+          }
+
+//..............................................................................................          
           modemStatus = 3;
-          _tcpStatus = 2;
+          _tcpStatus = 5;
         }
         else
         {
@@ -138,66 +180,137 @@ void GSM_MQTT::_tcpInit(void)
       }
     case 3:
       {
+        Serial.println("\n in Case 3\n");
         if (GSM_ReplyFlag != 7)
         {
-          _tcpStatus = sendATreply("AT+CIPSTATUS\r\n", "STATE", 4000);
+          Serial.println("\n GSM_ReplyFlag is not 7 \n"); 
+          
+          //_tcpStatus = sendATreply("AT+CIPSTATUS\r\n", "STATE" , 4000);                             //This is commented
+           Serial.print("\n count is:\n");
+           Serial.println(count);
+           count = count+1;
+        
+        /* if(count > 0)
+         {
+          _tcpStatus = count + 1;
+         }*/
+         
+          /* if (sendATreply("AT+CIPSTATUS\r\n","STATE: IP INITIAL" , 4000))
+            {
+              _tcpStatus = 2;
+            }
+            else if(sendATreply("AT+CIPSTATUS\r\n","STATE: TCP CLOSED" , 4000))
+            {
+              _tcpStatus = 2;
+            }
+            else if(sendATreply("AT+CIPSTATUS\r\n","STATE: IP START" , 4000))
+            {
+              _tcpStatus = 3;
+            }
+            else if (sendATreply("AT+CIPSTATUS\r\n","STATE: IP GPRSACT" , 4000))
+            {
+              _tcpStatus = 4;
+            }
+            else if (sendATreply("AT+CIPSTATUS\r\n","STATE: IP STATUS" , 4000))
+            {
+              _tcpStatus = 5;
+            }
+            else if (sendATreply("AT+CIPSTATUS\r\n","ERROR" , 4000))
+            {
+              Serial.println("\n Getting ERROR \n");
+            }
+            else
+            {
+              Serial.println("\n Did not match any condition for CIPSTATUS \n");
+              _tcpStatus = sendATreply("AT+CIPSTATUS\r\n", "STATE" , 4000);
+              Serial.println(_tcpStatus);
+            }
+          */
+
 
           if (_tcpStatusPrev == _tcpStatus)
           {
+            Serial.println("\n _tcpStatusPrev == _tcpStatus \n");
             tcpATerrorcount++;
             if (tcpATerrorcount >= 10)
             {
+              Serial.println("\n tcpATerrorcount > = 10\n");
               tcpATerrorcount = 0;
               _tcpStatus = 7;
             }
-
           }
           else
           {
+            Serial.println("\n ecpATerrorcount < 10 \n");
             _tcpStatusPrev = _tcpStatus;
             tcpATerrorcount = 0;
           }
         }
+        
         _tcpStatusPrev = _tcpStatus;
-        Serial1.print(_tcpStatus);
+        //Serial1.print(_tcpStatus);
+        
         switch (_tcpStatus)
         {
           case 2:
             {
+              Serial.println("\n In Nested Loop 2");
               _sendAT("AT+CSTT=\"airtelgprs.com\"\r\n", 5000);
               break;
             }
           case 3:
             {
-              _sendAT("AT+CIICR\r\n", 5000)  ;
+              Serial.println("\n In Nested Loop 3");
+              _sendAT("AT+CIICR\r\n", 5000);
               break;
             }
           case 4:
             {
-              sendATreply("AT+CIFSR\r\n", ".", 4000) ;
+              Serial.println("\n In Nested Loop 4");
+              sendATreply("AT+CIFSR\r\n", ".", 4000);
               break;
             }
           case 5:
             {
+              Serial.println("\n In Nested Loop 5");
               Serial.print("AT+CIPSTART=\"TCP\",\"");
               Serial.print(MQTT_HOST);
               Serial.print("\",\"");
               Serial.print(MQTT_PORT);
               if (_sendAT("\"\r\n", 5000) == 1)
               {
+                Serial.println("\n CONNECTED from CASE \n");
                 unsigned long PrevMillis = millis();
                 unsigned long currentMillis = millis();
-                while ( (GSM_Response != 4) && ((currentMillis - PrevMillis) < 20000) )
+                
+                Serial.print("\n GSM_Response is:\t");
+                Serial.println(GSM_Response);
+                
+                while ( (GSM_Response != 4) && ((currentMillis - PrevMillis) < 20000))
                 {
-                  //    delay(1);
-                  serialEvent();
+                  //GSM_Response = 4;                                              //This is temporarily SET (When GSM_Response = 4, it indicates either it is CONNECTED / DISCONNECTED
+                  Serial.print("\n GSM_Response is:\t");
+                  Serial.println(GSM_Response);
+                  Serial.println("\nEntering Serial Event from Nested Loop 5\n");
+                  serialEvent();              
+                  //serialEvent1();
                   currentMillis = millis();
                 }
+               Serial.println("\n After while() \n");
+              //count = count + 1;
+             // _tcpStatus = 6;
               }
+              else
+              {
+                Serial.println("\n Trying to SHUT the Connection\n");
+                _sendAT("AT+CIPSHUT\r\n", 2000);
+              }
+              Serial.println("\n Exiting Nested Loop 5\n");
               break;
             }
           case 6:
             {
+              Serial.println("\n In Nested Loop 6");
               unsigned long PrevMillis = millis();
               unsigned long currentMillis = millis();
               while ( (GSM_Response != 4) && ((currentMillis - PrevMillis) < 20000) )
@@ -206,13 +319,16 @@ void GSM_MQTT::_tcpInit(void)
                 serialEvent();
                 currentMillis = millis();
               }
+              count = count + 1;
               break;
             }
           case 7:
             {
+              Serial.println("\n In Nested Loop 7");
               sendATreply("AT+CIPSHUT\r\n", "OK", 4000) ;
               modemStatus = 0;
               _tcpStatus = 2;
+
               break;
             }
         }
@@ -620,6 +736,7 @@ const char ConnectAck2[] PROGMEM  = {"Connection Refused: identifier rejected\r\
 const char ConnectAck3[] PROGMEM  = {"Connection Refused: server unavailable\r\n"};
 const char ConnectAck4[] PROGMEM  = {"Connection Refused: bad user name or password\r\n"};
 const char ConnectAck5[] PROGMEM  = {"Connection Refused: not authorized\r\n"};
+
 void GSM_MQTT::printConnectAck(uint8_t Ack)
 {
   switch (Ack)
@@ -737,9 +854,12 @@ bool GSM_MQTT::available(void)
 void serialEvent()
 {
 
-  while (Serial1.available())
+  while (Serial1.available()) 
   {
     char inChar = (char)Serial1.read();
+
+    
+    
     if (MQTT.TCP_Flag == false)
     {
       if (MQTT.index < 200)
@@ -788,7 +908,7 @@ void serialEvent()
           }
           else if ((strstr(MQTT.inputString, " CONNECT OK") != 0) || (strstr(MQTT.inputString, "CONNECT FAIL") != NULL) || (strstr(MQTT.inputString, "PDP DEACT") != 0))
           {
-            Serial.println("\nCONNECTED\n");
+            Serial.println("\nDisCONNECTED\n");
             MQTT.GSM_ReplyFlag = 7;
           }
         }
@@ -992,4 +1112,216 @@ void serialEvent()
       }
     }
   }
-}
+}//serialEvent()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void serialEvent1()
+{
+
+  while (Serial1.available())
+  {
+  Serial.println("\nIn serialEvent1 \n");
+
+  if(GSM_Response == 4)
+  {
+          Serial.println("\n CONNECTION SUCCESSFUL");
+          GSM_Response = 4;
+          MQTT.TCP_Flag = true;
+          Serial1.println("MQTT.TCP_Flag = True");
+          MQTT.AutoConnect();
+          MQTT.pingFlag = true;
+          MQTT.tcpATerrorcount = 0;
+   }
+
+   char inChar;
+    /* if(GSM_Response == 4))
+        {
+          Serial.println("\n CONNECTION CLOSED \n");
+          GSM_Response = 4;
+          MQTT.TCP_Flag = false;
+          MQTT.MQTT_Flag = false;
+        }
+        MQTT.index = 0;
+        MQTT.inputString[0] = 0;
+      }
+    } */
+    
+    if(MQTT.TCP_Flag = true)
+    {
+      uint8_t ReceivedMessageType = (inChar / 16) & 0x0F;
+      uint8_t DUP = (inChar & DUP_Mask) / DUP_Mask;
+      uint8_t QoS = (inChar & QoS_Mask) / QoS_Scale;
+      uint8_t RETAIN = (inChar & RETAIN_Mask);
+      if ((ReceivedMessageType >= CONNECT) && (ReceivedMessageType <= DISCONNECT))
+      {
+        bool NextLengthByte = true;
+        MQTT.length = 0;
+        MQTT.lengthLocal = 0;
+        uint32_t multiplier=1;
+        delay(2);
+        char Cchar = inChar;
+        while ( (NextLengthByte == true) && (MQTT.TCP_Flag == true))
+        {
+          if (Serial1.available())
+          {
+            inChar = (char)Serial1.read();
+
+            //Serial1.println(inChar, DEC);
+            if ((((Cchar & 0xFF) == 'C') && ((inChar & 0xFF) == 'L') && (MQTT.length == 0)) || (((Cchar & 0xFF) == '+') && ((inChar & 0xFF) == 'P') && (MQTT.length == 0)))
+            {
+              MQTT.index = 0;
+              MQTT.inputString[MQTT.index++] = Cchar;
+              MQTT.inputString[MQTT.index++] = inChar;
+              MQTT.TCP_Flag = false;
+              MQTT.MQTT_Flag = false;
+              MQTT.pingFlag = false;
+              Serial.println("Disconnecting");
+            }
+            else
+            {
+              if ((inChar & 128) == 128)
+              {
+                MQTT.length += (inChar & 127) *  multiplier;
+                multiplier *= 128;
+                Serial.println("More");
+              }
+              else
+              {
+                NextLengthByte = false;
+                MQTT.length += (inChar & 127) *  multiplier;
+                multiplier *= 128;
+              }
+            }
+          }
+        }
+        MQTT.lengthLocal = MQTT.length;
+        Serial1.println(MQTT.length);
+        if (MQTT.TCP_Flag == true)
+        {
+          MQTT.printMessageType(ReceivedMessageType);
+          MQTT.index = 0L;
+          uint32_t a = 0;
+          while ((MQTT.length-- > 0) && (Serial1.available()))
+          {
+            MQTT.inputString[uint32_t(MQTT.index++)] = (char)Serial1.read();
+
+            delay(1);
+
+          }
+          Serial.println(" ");
+          if (ReceivedMessageType == CONNACK)
+          {
+
+            Serial.println("\nAcknowledgement Received\n");
+            
+            MQTT.ConnectionAcknowledgement = MQTT.inputString[0] * 256 + MQTT.inputString[1];
+            if (MQTT.ConnectionAcknowledgement == 0)
+            {
+              MQTT.MQTT_Flag = true;
+              MQTT.OnConnect();
+
+            }
+
+            MQTT.printConnectAck(MQTT.ConnectionAcknowledgement);
+            // MQTT.OnConnect();
+          }
+          else if (ReceivedMessageType == PUBLISH)
+          {
+            uint32_t TopicLength = (MQTT.inputString[0]) * 256 + (MQTT.inputString[1]);
+            Serial1.print("Topic : '");
+            MQTT.PublishIndex = 0;
+            for (uint32_t iter = 2; iter < TopicLength + 2; iter++)
+            {
+              Serial1.print(MQTT.inputString[iter]);
+              MQTT.Topic[MQTT.PublishIndex++] = MQTT.inputString[iter];
+            }
+            MQTT.Topic[MQTT.PublishIndex] = 0;
+            Serial1.print("' Message :'");
+            MQTT.TopicLength = MQTT.PublishIndex;
+
+            MQTT.PublishIndex = 0;
+            uint32_t MessageSTART = TopicLength + 2UL;
+            int MessageID = 0;
+            if (QoS != 0)
+            {
+              MessageSTART += 2;
+              MessageID = MQTT.inputString[TopicLength + 2UL] * 256 + MQTT.inputString[TopicLength + 3UL];
+            }
+            for (uint32_t iter = (MessageSTART); iter < (MQTT.lengthLocal); iter++)
+            {
+              Serial1.print(MQTT.inputString[iter]);
+              MQTT.Message[MQTT.PublishIndex++] = MQTT.inputString[iter];
+            }
+            MQTT.Message[MQTT.PublishIndex] = 0;
+            Serial1.println("'");
+            MQTT.MessageLength = MQTT.PublishIndex;
+            if (QoS == 1)
+            {
+              MQTT.publishACK(MessageID);
+            }
+            else if (QoS == 2)
+            {
+              MQTT.publishREC(MessageID);
+            }
+            MQTT.OnMessage(MQTT.Topic, MQTT.TopicLength, MQTT.Message, MQTT.MessageLength);
+            MQTT.MessageFlag = true;
+          }
+          else if (ReceivedMessageType == PUBREC)
+          {
+            Serial1.print("Message ID :");
+            MQTT.publishREL(0, MQTT.inputString[0] * 256 + MQTT.inputString[1]) ;
+            Serial1.println(MQTT.inputString[0] * 256 + MQTT.inputString[1]) ;
+
+          }
+          else if (ReceivedMessageType == PUBREL)
+          {
+            Serial1.print("Message ID :");
+            MQTT.publishCOMP(MQTT.inputString[0] * 256 + MQTT.inputString[1]) ;
+            Serial1.println(MQTT.inputString[0] * 256 + MQTT.inputString[1]) ;
+
+          }
+          else if ((ReceivedMessageType == PUBACK) || (ReceivedMessageType == PUBCOMP) || (ReceivedMessageType == SUBACK) || (ReceivedMessageType == UNSUBACK))
+          {
+            Serial1.print("Message ID :");
+            Serial1.println(MQTT.inputString[0] * 256 + MQTT.inputString[1]) ;
+          }
+          else if (ReceivedMessageType == PINGREQ)
+          {
+            MQTT.TCP_Flag = false;
+            MQTT.pingFlag = false;
+            Serial1.println("Disconnecting");
+            MQTT.sendATreply("AT+CIPSHUT\r\n", ".", 4000) ;
+            MQTT.modemStatus = 0;
+          }
+        }
+      }
+      else if ((inChar = 13) || (inChar == 10))
+      {
+      }
+      else
+      {
+        Serial1.print("Received :Unknown Message Type :");
+        Serial1.println(inChar);
+      }
+    }
+  }
+}//serialEvent1()
+
+
+
+
+
